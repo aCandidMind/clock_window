@@ -2,7 +2,6 @@
 
 require 'fileutils'
 require 'slop'
-require 'neatjson'
 require 'clock_window'
 
 opts = Slop.parse do |o|
@@ -37,21 +36,15 @@ dir_name, _, file_name = opts[:output].to_s.rpartition(File::SEPARATOR)
 file_name = "timelog.json" if file_name.empty?
 
 @time = Time.now if opts[:eager]
-@hash = {}
+puts "Start time is #{@time || Time.now}"
+filter_opts = opts.clean? ? {filter_opts: {no_notify: true}} : {}
+clock_it = ClockWindow::ClockIt.new(**filter_opts)
 begin
   loop do
-    filter_opts = opts.clean? ? {filter_opts: {no_notify: true}} : {}
-    x = ClockWindow::ClockIt.new(**filter_opts).active_window
-    @hash[x] = @hash[x].to_f + 0.25
-    sleep 15
+    clock_it.tick
+    sleep clock_it.sleep_length
   end
 ensure
-  @hash = {"*---------- WINDOW NAME ----------*" => "minutes"}.merge(@hash)
   @time ||= Time.now
-  dir = @time.strftime(dir_name)
-  FileUtils.mkdir_p(dir) unless dir.empty?
-  file = @time.strftime(file_name)
-  File.open("#{dir}#{File::SEPARATOR unless dir.empty?}#{file}","w") do |f|
-    f.write(JSON.neat_generate(@hash,aligned:true,around_colon:1))
-  end
+  clock_it.write_report(@time, dir_name, file_name)
 end

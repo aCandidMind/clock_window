@@ -56,6 +56,16 @@ module ClockWindow
         raise "Not implemented for #{@os}"
       end
     end
+
+    def notify_cmd(filepath)
+      case @os
+        when /linux/i
+          "xterm -e \"vim #{filepath}\""
+        else
+        raise "Not implemented for #{@os}"
+      end
+    end
+
   end
   private_constant :OScommand
 end
